@@ -1,0 +1,117 @@
+services:
+  mongo:
+    image: mongo:7
+    container_name: anchor_mongo
+    restart: unless-stopped
+    ports:
+      - '27017:27017'
+    volumes:
+      - mongo_data:/data/db
+    networks:
+      - anchor_network
+    healthcheck:
+      test: ['CMD', 'mongosh', '--eval', "db.adminCommand('ping')"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+      start_period: 20s
+
+  redis:
+    image: redis:7-alpine
+    container_name: anchor_redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    ports:
+      - '6379:6379'
+    volumes:
+      - redis_data:/data
+    networks:
+      - anchor_network
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 3s
+      retries: 5
+
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    container_name: anchor_api
+    restart: unless-stopped
+    ports:
+      - '3001:3001'
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/anchor
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - anchor_network
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: packages/scheduler/Dockerfile
+    container_name: anchor_scheduler
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+      api:
+        condition: service_started
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/anchor
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - anchor_network
+
+  worker:
+    build:
+      context: .
+      dockerfile: packages/worker/Dockerfile
+    restart: unless-stopped
+    depends_on:
+      mongo:
+        condition: service_healthy
+      redis:
+        condition: service_healthy
+    env_file:
+      - .env
+    environment:
+      - MONGODB_URI=mongodb://mongo:27017/anchor
+      - REDIS_URL=redis://redis:6379
+    networks:
+      - anchor_network
+    deploy:
+      replicas: 2
+
+  frontend:
+    build:
+      context: .
+      dockerfile: packages/frontend/Dockerfile
+    container_name: anchor_frontend
+    restart: unless-stopped
+    ports:
+      - '5173:5173'
+    env_file:
+      - .env
+    networks:
+      - anchor_network
+
+networks:
+  anchor_network:
+    driver: bridge
+
+volumes:
+  mongo_data:
+  redis_data:

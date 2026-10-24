@@ -1,0 +1,21 @@
+{
+  "name": "@anchor/worker",
+  "version": "1.0.0",
+  "type": "module",
+  "main": "src/index.js",
+  "scripts": {
+    "start": "node src/index.js",
+    "dev": "nodemon src/index.js"
+  },
+  "dependencies": {
+    "@anchor/shared": "*",
+    "node-fetch": "^3.3.0",
+    "tls": "*",
+    "dotenv": "^16.0.0",
+    "pino": "^9.0.0",
+    "pino-pretty": "^13.0.0"
+  },
+  "devDependencies": {
+    "nodemon": "^3.0.0"
+  }
+}

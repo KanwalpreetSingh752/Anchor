@@ -1,0 +1,21 @@
+{
+  "name": "anchor",
+  "version": "1.0.0",
+  "private": true,
+  "workspaces": [
+    "packages/*",
+    "shared"
+  ],
+  "scripts": {
+    "dev:api": "npm run dev --workspace=packages/api",
+    "dev:scheduler": "npm run dev --workspace=packages/scheduler",
+    "dev:worker": "npm run dev --workspace=packages/worker",
+    "dev:frontend": "npm run dev --workspace=packages/frontend"
+  },
+  "devDependencies": {
+    "@tailwindcss/postcss": "^4.3.3",
+    "autoprefixer": "^10.6.1",
+    "postcss": "^8.5.31",
+    "tailwindcss": "^4.3.3"
+  }
+}

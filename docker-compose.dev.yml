@@ -1,0 +1,34 @@
+# Development overrides — mounts source for hot-reload, exposes debug ports
+services:
+  api:
+    build:
+      context: .
+      dockerfile: packages/api/Dockerfile
+    volumes:
+      - ./packages/api/src:/app/packages/api/src
+      - ./shared:/app/shared
+    environment:
+      - NODE_ENV=development
+    command: npm run dev --workspace=packages/api
+
+  scheduler:
+    build:
+      context: .
+      dockerfile: packages/scheduler/Dockerfile
+    volumes:
+      - ./packages/scheduler/src:/app/packages/scheduler/src
+      - ./shared:/app/shared
+    environment:
+      - NODE_ENV=development
+    command: npm run dev --workspace=packages/scheduler
+
+  worker:
+    build:
+      context: .
+      dockerfile: packages/worker/Dockerfile
+    volumes:
+      - ./packages/worker/src:/app/packages/worker/src
+      - ./shared:/app/shared
+    environment:
+      - NODE_ENV=development
+    command: npm run dev --workspace=packages/worker
