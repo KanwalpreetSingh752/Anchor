@@ -4,9 +4,8 @@ import { useProjectSocket } from '../hooks/useProjectSocket';
 import api from '../lib/api';
 import { 
   Activity, Plus, Globe, AlertTriangle, ShieldCheck, 
-  ExternalLink, LogOut, CheckCircle2, ChevronRight, Bell, Clock,
-  RefreshCw, Search, Shield, Settings, LayoutDashboard,
-  ChevronDown, Terminal, ArrowUpRight
+  LogOut, Bell, Clock, Search, Settings, LayoutDashboard,
+  ChevronDown, ArrowUpRight
 } from 'lucide-react';
 import { 
   ResponsiveContainer, AreaChart, Area, XAxis, YAxis, Tooltip

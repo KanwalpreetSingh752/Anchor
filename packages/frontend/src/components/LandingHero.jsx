@@ -1,9 +1,5 @@
 import React, { useState } from 'react';
-import { 
-  Activity, ShieldCheck, ArrowRight, Zap, CheckCircle2, 
-  ChevronRight, BarChart3, Clock, Globe, Bell, Server, Cpu,
-  Terminal, ShieldAlert, Radio, Flame, Sparkles, Check, Play, RefreshCw
-} from 'lucide-react';
+import { ArrowRight, Terminal, Radio, RefreshCw } from 'lucide-react';
 
 export default function LandingHero({ onGetStarted, onSignIn }) {
   const [urlInput, setUrlInput] = useState('');

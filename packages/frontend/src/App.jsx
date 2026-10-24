@@ -40,7 +40,7 @@ function MainRouter() {
     return (
       <div className="min-h-screen bg-[#182D26] flex items-center justify-center text-emerald-100 text-sm">
         <div className="flex items-center gap-3 bg-[#12221c] px-5 py-3 rounded-xl border border-[#25443a]">
-          <span className="w-2.5 h-2.5 rounded-full bg-[#E5F455] animate-ping" />
+          <span className="w-2.5 h-2.5 rounded-full bg-[#E5F455]" />
           <span>Bootstrapping Anchor Session...</span>
         </div>
       </div>
