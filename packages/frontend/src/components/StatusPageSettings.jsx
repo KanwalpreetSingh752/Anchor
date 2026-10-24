@@ -60,11 +60,9 @@ export default function StatusPageSettings({ projectId, monitors }) {
   };
 
   const toggleMonitor = (id) => {
-    if (selectedMonitors.includes(id)) {
-      setSelectedMonitors(selectedMonitors.filter(m => m !== id));
-    } else {
-      setSelectedMonitors([...selectedMonitors, id]);
-    }
+    setSelectedMonitors(prev => 
+      prev.includes(id) ? prev.filter(m => m !== id) : [...prev, id]
+    );
   };
 
   const publicUrl = slug ? `${window.location.origin}/status/${slug}` : '';
@@ -77,105 +75,110 @@ export default function StatusPageSettings({ projectId, monitors }) {
 
   return (
     <div className="space-y-6">
-      <div>
-        <h2 className="text-base font-bold text-white">Public Status Page</h2>
-        <p className="text-xs text-slate-400">Publish high-level availability & incident history for your customers</p>
-      </div>
+      <div className="flex items-center justify-between">
+        <div>
+          <h2 className="text-base font-bold text-white">Public Status Page Settings</h2>
+          <p className="text-xs text-emerald-100/60">Publish a live uptime status page for your users and enterprise clients</p>
+        </div>
 
-      {slug && (
-        <div className="bg-[#111726] border border-[#1e293b] p-4 rounded-xl flex items-center justify-between">
-          <div>
-            <span className="text-xs text-slate-400">Live Status Page URL:</span>
-            <div className="text-sm font-mono text-blue-400 font-semibold">{publicUrl}</div>
-          </div>
+        {slug && (
           <div className="flex items-center gap-2">
             <button
               onClick={copyUrl}
-              className="px-3 py-1.5 bg-slate-800 hover:bg-slate-700 text-xs text-slate-200 rounded-lg flex items-center gap-1.5 transition-all"
+              className="flex items-center gap-1.5 px-3 py-1.5 bg-[#12221c] hover:bg-[#1f382f] border border-[#25443a] text-xs text-emerald-100/80 rounded-lg transition-all"
             >
-              {copied ? <Check className="w-3.5 h-3.5 text-emerald-400" /> : <Copy className="w-3.5 h-3.5" />}
-              {copied ? 'Copied' : 'Copy Link'}
+              {copied ? <Check className="w-3.5 h-3.5 text-[#E5F455]" /> : <Copy className="w-3.5 h-3.5" />}
+              {copied ? 'Copied' : 'Copy Public URL'}
             </button>
             <a
               href={`/status/${slug}`}
               target="_blank"
               rel="noreferrer"
-              className="px-3 py-1.5 bg-blue-600 hover:bg-blue-500 text-xs text-white rounded-lg flex items-center gap-1.5 transition-all"
+              className="flex items-center gap-1.5 px-4 py-1.5 bg-[#E5F455] hover:bg-[#d8e747] text-[#182D26] text-xs font-bold rounded-lg transition-all shadow-md active:scale-95"
             >
-              <ExternalLink className="w-3.5 h-3.5" /> View Live
+              <Eye className="w-3.5 h-3.5" /> View Live Page
             </a>
           </div>
-        </div>
-      )}
+        )}
+      </div>
 
-      <form onSubmit={handleSave} className="bg-[#111726] border border-[#1e293b] p-6 rounded-xl space-y-4">
+      <form onSubmit={handleSave} className="bg-[#12221c] border border-[#25443a] rounded-xl p-6 space-y-5">
         <div className="grid grid-cols-2 gap-4">
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">Status Page Title</label>
+            <label className="block text-xs font-medium text-emerald-100/80 mb-1">Status Page Title</label>
             <input
               type="text"
               required
+              placeholder="e.g. Acme Corp System Status"
               value={title}
               onChange={(e) => setTitle(e.target.value)}
-              placeholder="Acme Platform Status"
-              className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-xs text-slate-100"
+              className="w-full bg-[#182D26] border border-[#25443a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E5F455]"
             />
           </div>
-
           <div>
-            <label className="block text-xs font-medium text-slate-300 mb-1">URL Identifier Slug</label>
-            <input
-              type="text"
-              required
-              value={slug}
-              onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
-              placeholder="acme-status"
-              className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-xs text-slate-100 font-mono"
-            />
+            <label className="block text-xs font-medium text-emerald-100/80 mb-1">URL Identifier (Slug)</label>
+            <div className="flex items-center bg-[#182D26] border border-[#25443a] rounded-lg px-3">
+              <span className="text-xs text-emerald-100/40 font-mono">/status/</span>
+              <input
+                type="text"
+                required
+                placeholder="acme-status"
+                value={slug}
+                onChange={(e) => setSlug(e.target.value.toLowerCase().replace(/[^a-z0-9-]/g, ''))}
+                className="w-full bg-transparent py-2 text-xs text-white focus:outline-none pl-1"
+              />
+            </div>
           </div>
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-1">Public Header Description</label>
+          <label className="block text-xs font-medium text-emerald-100/80 mb-1">Company / Incident Description</label>
           <textarea
+            rows={2}
+            placeholder="Official status and real-time availability updates for all services."
             value={description}
             onChange={(e) => setDescription(e.target.value)}
-            rows={2}
-            placeholder="Real-time uptime and incident status for Acme Cloud services."
-            className="w-full bg-[#090d16] border border-[#1e293b] rounded-lg px-3 py-2 text-xs text-slate-100"
+            className="w-full bg-[#182D26] border border-[#25443a] rounded-lg px-3 py-2 text-xs text-white focus:outline-none focus:border-[#E5F455]"
           />
         </div>
 
         <div>
-          <label className="block text-xs font-medium text-slate-300 mb-2">Display Monitors on Status Page</label>
-          <div className="grid grid-cols-2 gap-2">
-            {monitors.map((m) => (
-              <label
-                key={m.id}
-                className={`flex items-center gap-2 p-2.5 rounded-lg border cursor-pointer transition-all ${
-                  selectedMonitors.includes(m.id)
-                    ? 'bg-blue-600/10 border-blue-500/40 text-slate-100'
-                    : 'bg-[#090d16] border-[#1e293b] text-slate-400'
-                }`}
-              >
-                <input
-                  type="checkbox"
-                  checked={selectedMonitors.includes(m.id)}
-                  onChange={() => toggleMonitor(m.id)}
-                  className="rounded bg-slate-800 border-slate-700 text-blue-600 focus:ring-0"
-                />
-                <span className="text-xs font-medium">{m.name}</span>
-                <span className="text-[10px] text-slate-500 font-mono ml-auto">{m.method}</span>
-              </label>
-            ))}
-          </div>
+          <label className="block text-xs font-medium text-emerald-100/80 mb-2">Display Monitors on Public Page</label>
+          {monitors.length === 0 ? (
+            <p className="text-xs text-emerald-100/50">Create monitors first to feature them on this status page.</p>
+          ) : (
+            <div className="grid grid-cols-2 gap-2 bg-[#182D26] p-3 rounded-lg border border-[#25443a]">
+              {monitors.map((m) => (
+                <label key={m.id} className="flex items-center gap-2 text-xs text-slate-200 cursor-pointer p-1.5 hover:bg-[#12221c] rounded">
+                  <input
+                    type="checkbox"
+                    checked={selectedMonitors.includes(m.id)}
+                    onChange={() => toggleMonitor(m.id)}
+                    className="rounded bg-[#12221c] border-[#25443a] text-[#E5F455] focus:ring-0"
+                  />
+                  <span className="font-medium text-white">{m.name}</span>
+                  <span className="text-[10px] text-emerald-100/50 font-mono">({m.method})</span>
+                </label>
+              ))}
+            </div>
+          )}
         </div>
 
-        <div className="pt-2 flex justify-end">
+        <div className="pt-2 flex items-center justify-between border-t border-[#25443a]">
+          <label className="flex items-center gap-2 cursor-pointer">
+            <input
+              type="checkbox"
+              checked={isPublic}
+              onChange={(e) => setIsPublic(e.target.checked)}
+              className="rounded bg-[#182D26] border-[#25443a] text-[#E5F455] focus:ring-0"
+            />
+            <span className="text-xs font-medium text-emerald-100/80">Make this page accessible to the public</span>
+          </label>
+
           <button
             type="submit"
             disabled={saving}
-            className="px-5 py-2 bg-blue-600 hover:bg-blue-500 text-white rounded-lg text-xs font-medium transition-all shadow disabled:opacity-50"
+            className="px-5 py-2 bg-[#E5F455] hover:bg-[#d8e747] text-[#182D26] text-xs font-bold rounded-lg transition-all shadow-md active:scale-95 disabled:opacity-50"
           >
             {saving ? 'Saving...' : 'Save Configuration'}
           </button>

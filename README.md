@@ -1,3 +1,4 @@
+<<<<<<< HEAD
 # Anchor ⚓ — Distributed API Reliability Monitoring Platform
 
 Anchor is an API reliability monitoring engine built on the MERN stack with Redis, BullMQ, and WebSockets. Designed with production distributed systems patterns, Anchor executes concurrent probes, monitors SSL certificates, aggregates time-series telemetry using MongoDB's **Bucket Pattern**, and orchestrates stateful alert deduplication and public status pages.
@@ -150,3 +151,7 @@ npm run dev:frontend
 ### Public Status Pages
 - `GET /api/status/:slug` — Public status overview (Redis-cached)
 - `GET/POST/PATCH /api/projects/:projectId/status-page` — Manage project status page configuration
+=======
+# Anchor
+A MERN-based API reliability monitor with real-time health checks, uptime analytics, incident detection, and alerts.
+>>>>>>> f415b26fdbd4aca3f7879e0d473fb2c1bba1e176

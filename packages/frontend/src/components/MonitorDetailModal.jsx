@@ -1,11 +1,12 @@
 import React, { useState } from 'react';
+import api from '../lib/api';
 import { 
-  AreaChart, Area, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
+  LineChart, Line, XAxis, YAxis, Tooltip, ResponsiveContainer, CartesianGrid,
   BarChart, Bar
 } from 'recharts';
 import { 
   Clock, CheckCircle, AlertTriangle, XCircle, ArrowUpRight, 
-  ShieldCheck, RefreshCw, ChevronRight, Zap
+  ShieldCheck, RefreshCw, ChevronRight, Zap, X
 } from 'lucide-react';
 
 export default function MonitorDetailModal({ monitor, projectId, onClose, onRefresh }) {
@@ -15,25 +16,23 @@ export default function MonitorDetailModal({ monitor, projectId, onClose, onRefr
   const [activeTab, setActiveTab] = useState('analytics'); // 'analytics' | 'history'
   const [checks, setChecks] = useState([]);
 
+  const monitorId = monitor.id || monitor._id;
+  const actualProjectId = projectId || monitor.projectId;
+
   React.useEffect(() => {
     fetchStats();
     fetchChecks();
-  }, [range, monitor.id]);
+  }, [range, monitorId]);
 
   const fetchStats = async () => {
     setLoading(true);
     try {
-      const res = await fetch(`/api/projects/${projectId}/monitors/${monitor.id}/stats?range=${range}`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('anchor_access_token')}`
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setStats(data.data);
+      const res = await api.get(`/projects/${actualProjectId}/monitors/${monitorId}/stats?range=${range}`);
+      if (res.data?.success) {
+        setStats(res.data.data);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch stats:', e);
     } finally {
       setLoading(false);
     }
@@ -41,231 +40,218 @@ export default function MonitorDetailModal({ monitor, projectId, onClose, onRefr
 
   const fetchChecks = async () => {
     try {
-      const res = await fetch(`/api/projects/${projectId}/monitors/${monitor.id}/checks?range=${range}&limit=50`, {
-        headers: {
-          Authorization: `Bearer ${localStorage.getItem('anchor_access_token')}`
-        }
-      });
-      const data = await res.json();
-      if (data.success) {
-        setChecks(data.data.checks || []);
+      const res = await api.get(`/projects/${actualProjectId}/monitors/${monitorId}/checks?range=${range}&limit=50`);
+      if (res.data?.success) {
+        setChecks(res.data.data.checks || []);
       }
     } catch (e) {
-      console.error(e);
+      console.error('Failed to fetch checks:', e);
     }
   };
 
-  const formattedChartData = (stats?.series || []).map(item => ({
+  // Convert raw recent checks to real-time chronological line data points if hourly buckets are still fresh
+  const recentCheckPoints = (checks || []).slice().reverse().map((chk) => ({
+    time: new Date(chk.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit', second: '2-digit' }),
+    latency: chk.latency,
+    status: chk.status,
+  }));
+
+  const hourlySeriesData = (stats?.series || []).map(item => ({
     time: new Date(item.hour).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' }),
-    avgLatency: item.avgLatency,
+    latency: item.avgLatency,
     p95Latency: item.p95Latency,
     uptime: item.uptime,
     failures: item.failures,
   }));
 
+  const chartData = hourlySeriesData.length > 1 ? hourlySeriesData : recentCheckPoints;
+
   return (
-    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/70 backdrop-blur-sm p-4">
-      <div className="bg-[#111726] border border-[#1e293b] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
-        {/* Header */}
-        <div className="p-6 border-b border-[#1e293b] flex items-center justify-between">
+    <div className="fixed inset-0 z-50 flex items-center justify-center bg-black/80 backdrop-blur-sm p-4 selection:bg-[#E5F455] selection:text-[#182D26]">
+      <div className="bg-[#12221c] border border-[#25443a] rounded-2xl w-full max-w-4xl max-h-[90vh] flex flex-col shadow-2xl overflow-hidden">
+        {/* Modal Header */}
+        <div className="p-6 border-b border-[#25443a] bg-[#162a22] flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <span className={`w-3 h-3 rounded-full ${
-              monitor.lastStatus === 'UP' ? 'bg-emerald-500 shadow-lg shadow-emerald-500/50' : 
-              monitor.lastStatus === 'DEGRADED' ? 'bg-amber-500' : 'bg-rose-500'
+            <span className={`w-3.5 h-3.5 rounded-full ${
+              monitor.lastStatus === 'UP' ? 'bg-[#E5F455] shadow-md shadow-[#E5F455]/40' :
+              monitor.lastStatus === 'DEGRADED' ? 'bg-amber-400' :
+              monitor.lastStatus === 'DOWN' ? 'bg-rose-500 shadow-md shadow-rose-500/40' :
+              'bg-slate-500'
             }`} />
             <div>
-              <h2 className="text-lg font-bold text-white flex items-center gap-2">
-                {monitor.name}
-                <span className="text-xs px-2 py-0.5 rounded bg-slate-800 text-slate-300 font-mono">
+              <div className="flex items-center gap-2">
+                <h2 className="text-lg font-bold text-white">{monitor.name}</h2>
+                <span className="text-[10px] font-mono px-2 py-0.5 rounded bg-[#182D26] border border-[#25443a] text-emerald-100/70">
                   {monitor.method}
                 </span>
-              </h2>
-              <p className="text-xs text-slate-400 font-mono">{monitor.url}</p>
+              </div>
+              <p className="text-xs text-emerald-100/50 font-mono mt-0.5">{monitor.url}</p>
             </div>
           </div>
 
-          <div className="flex items-center gap-2">
-            <div className="flex bg-[#090d16] p-1 rounded-lg border border-[#1e293b] text-xs">
-              {['24h', '7d', '30d'].map(r => (
+          <div className="flex items-center gap-3">
+            <div className="flex bg-[#182D26] p-1 rounded-lg border border-[#25443a] text-xs">
+              {['1h', '24h', '7d', '30d'].map((r) => (
                 <button
                   key={r}
                   onClick={() => setRange(r)}
-                  className={`px-2.5 py-1 rounded font-medium ${
-                    range === r ? 'bg-blue-600 text-white' : 'text-slate-400 hover:text-white'
+                  className={`px-3 py-1 rounded font-medium transition-all ${
+                    range === r 
+                      ? 'bg-[#E5F455] text-[#182D26] font-bold shadow-sm' 
+                      : 'text-emerald-100/60 hover:text-white'
                   }`}
                 >
-                  {r}
+                  {r.toUpperCase()}
                 </button>
               ))}
             </div>
-            <button 
-              onClick={onClose} 
-              className="p-1.5 text-slate-400 hover:text-white hover:bg-slate-800 rounded-lg text-lg"
+
+            <button
+              onClick={() => { fetchStats(); fetchChecks(); }}
+              className="p-2 text-emerald-100/60 hover:text-white hover:bg-[#182D26] rounded-lg border border-[#25443a] transition-all"
+              title="Refresh Telemetry"
             >
-              ✕
+              <RefreshCw className="w-4 h-4" />
+            </button>
+
+            <button
+              onClick={onClose}
+              className="p-2 text-emerald-100/60 hover:text-white hover:bg-[#182D26] rounded-lg border border-[#25443a] transition-all"
+            >
+              <X className="w-4 h-4" />
             </button>
           </div>
         </div>
 
-        {/* Content */}
-        <div className="p-6 overflow-y-auto space-y-6 flex-1">
-          {/* Key Metric Cards */}
+        {/* Modal Body */}
+        <div className="p-6 space-y-6 overflow-y-auto flex-1 bg-[#12221c]">
+          {/* Key Metric Gauges */}
           <div className="grid grid-cols-4 gap-4">
-            <div className="bg-[#090d16] p-4 rounded-xl border border-[#1e293b]">
-              <span className="text-xs text-slate-400 font-medium">Uptime ({range})</span>
-              <div className="mt-1 text-2xl font-bold text-emerald-400">
-                {stats?.uptime !== undefined ? `${stats.uptime}%` : '--'}
+            <div className="bg-[#182D26] border border-[#25443a] p-4 rounded-xl">
+              <span className="text-xs text-emerald-100/50 font-medium">Uptime Guarantee</span>
+              <div className="text-2xl font-bold text-white mt-1">
+                {stats ? `${stats.uptime.toFixed(2)}%` : '--%'}
               </div>
-              <span className="text-[10px] text-slate-500">{stats?.totalChecks || 0} checks recorded</span>
+              <span className="text-[10px] text-[#E5F455] font-mono mt-1 block">Edge consensus</span>
             </div>
 
-            <div className="bg-[#090d16] p-4 rounded-xl border border-[#1e293b]">
-              <span className="text-xs text-slate-400 font-medium">Avg Latency</span>
-              <div className="mt-1 text-2xl font-bold text-blue-400">
-                {stats?.avgLatency ? `${stats.avgLatency}ms` : '--'}
+            <div className="bg-[#182D26] border border-[#25443a] p-4 rounded-xl">
+              <span className="text-xs text-emerald-100/50 font-medium">Mean Response Time</span>
+              <div className="text-2xl font-bold text-[#E5F455] mt-1 font-mono">
+                {stats ? `${Math.round(stats.avgLatency)}ms` : '--ms'}
               </div>
-              <span className="text-[10px] text-slate-500">P50: {stats?.percentiles?.p50 || 0}ms</span>
+              <span className="text-[10px] text-emerald-100/50 font-mono mt-1 block">Network + TTFB</span>
             </div>
 
-            <div className="bg-[#090d16] p-4 rounded-xl border border-[#1e293b]">
-              <span className="text-xs text-slate-400 font-medium">P95 / P99 Latency</span>
-              <div className="mt-1 text-2xl font-bold text-amber-400">
-                {stats?.percentiles?.p95 ? `${stats.percentiles.p95}ms` : '--'}
+            <div className="bg-[#182D26] border border-[#25443a] p-4 rounded-xl">
+              <span className="text-xs text-emerald-100/50 font-medium">P95 Latency Peak</span>
+              <div className="text-2xl font-bold text-amber-400 mt-1 font-mono">
+                {stats ? `${Math.round(stats.p95Latency)}ms` : '--ms'}
               </div>
-              <span className="text-[10px] text-slate-500">P99: {stats?.percentiles?.p99 || 0}ms</span>
+              <span className="text-[10px] text-emerald-100/50 font-mono mt-1 block">Tail latency index</span>
             </div>
 
-            <div className="bg-[#090d16] p-4 rounded-xl border border-[#1e293b]">
-              <span className="text-xs text-slate-400 font-medium">SSL Expiry</span>
-              <div className="mt-1 text-xl font-bold text-slate-200">
-                {monitor.sslExpiry ? new Date(monitor.sslExpiry).toLocaleDateString() : 'Valid'}
+            <div className="bg-[#182D26] border border-[#25443a] p-4 rounded-xl">
+              <span className="text-xs text-emerald-100/50 font-medium">Total Check Executions</span>
+              <div className="text-2xl font-bold text-white mt-1">
+                {stats ? stats.totalChecks.toLocaleString() : '--'}
               </div>
-              <span className="text-[10px] text-emerald-400 flex items-center gap-1">
-                <ShieldCheck className="w-3 h-3" /> TLS Verified
-              </span>
+              <span className="text-[10px] text-emerald-100/50 font-mono mt-1 block">Interval: {monitor.interval}s</span>
             </div>
           </div>
 
-          {/* Tab buttons */}
-          <div className="flex border-b border-[#1e293b] gap-6 text-sm">
+          {/* Tab Selector */}
+          <div className="flex gap-4 border-b border-[#25443a] pb-2 text-sm">
             <button
               onClick={() => setActiveTab('analytics')}
-              className={`pb-3 font-medium transition-all ${
-                activeTab === 'analytics'
-                  ? 'border-b-2 border-blue-500 text-blue-400'
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`pb-1 font-semibold transition-all ${
+                activeTab === 'analytics' ? 'text-[#E5F455] border-b-2 border-[#E5F455]' : 'text-emerald-100/60 hover:text-white'
               }`}
             >
-              Latency & Reliability Trends
+              Latency & Degradation Trends
             </button>
             <button
               onClick={() => setActiveTab('history')}
-              className={`pb-3 font-medium transition-all ${
-                activeTab === 'history'
-                  ? 'border-b-2 border-blue-500 text-blue-400'
-                  : 'text-slate-400 hover:text-slate-200'
+              className={`pb-1 font-semibold transition-all ${
+                activeTab === 'history' ? 'text-[#E5F455] border-b-2 border-[#E5F455]' : 'text-emerald-100/60 hover:text-white'
               }`}
             >
-              Recent Raw Samples ({checks.length})
+              Recent Probe Execution Log ({checks.length})
             </button>
           </div>
 
-          {activeTab === 'analytics' ? (
+          {activeTab === 'analytics' && (
             <div className="space-y-6">
-              {/* Latency Chart */}
-              <div className="bg-[#090d16] p-4 rounded-xl border border-[#1e293b]">
-                <div className="text-xs font-semibold text-slate-300 mb-4 flex items-center justify-between">
-                  <span>Latency Over Time (Avg & P95)</span>
-                  <div className="flex items-center gap-4 text-[11px]">
-                    <span className="flex items-center gap-1.5 text-blue-400">
-                      <span className="w-2.5 h-0.5 bg-blue-500 inline-block" /> Avg Latency
+              <div className="bg-[#182D26] border border-[#25443a] p-5 rounded-xl">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-sm font-semibold text-white">Synthetic Response Time (ms)</h3>
+                  <div className="flex items-center gap-4 text-xs font-mono">
+                    <span className="flex items-center gap-1.5 text-emerald-100/70">
+                      <span className="w-2.5 h-2.5 rounded bg-[#E5F455]" /> Latency
                     </span>
-                    <span className="flex items-center gap-1.5 text-amber-400">
-                      <span className="w-2.5 h-0.5 bg-amber-500 inline-block" /> P95 Latency
+                    <span className="flex items-center gap-1.5 text-emerald-100/70">
+                      <span className="w-2.5 h-2.5 rounded bg-amber-400" /> P95 Peak
                     </span>
                   </div>
                 </div>
 
-                <div className="h-56 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <AreaChart data={formattedChartData}>
-                      <defs>
-                        <linearGradient id="avgGrad" x1="0" y1="0" x2="0" y2="1">
-                          <stop offset="5%" stopColor="#3b82f6" stopOpacity={0.4}/>
-                          <stop offset="95%" stopColor="#3b82f6" stopOpacity={0}/>
-                        </linearGradient>
-                      </defs>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
-                      <YAxis stroke="#64748b" fontSize={10} unit="ms" />
-                      <Tooltip 
-                        contentStyle={{ backgroundColor: '#111726', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }} 
-                      />
-                      <Area type="monotone" dataKey="avgLatency" stroke="#3b82f6" fillOpacity={1} fill="url(#avgGrad)" />
-                      <Area type="monotone" dataKey="p95Latency" stroke="#f59e0b" fill="none" strokeDasharray="4 4" />
-                    </AreaChart>
-                  </ResponsiveContainer>
-                </div>
-              </div>
-
-              {/* Uptime Trend Bar */}
-              <div className="bg-[#090d16] p-4 rounded-xl border border-[#1e293b]">
-                <div className="text-xs font-semibold text-slate-300 mb-2">Hourly Uptime Distribution (%)</div>
-                <div className="h-32 w-full">
-                  <ResponsiveContainer width="100%" height="100%">
-                    <BarChart data={formattedChartData}>
-                      <CartesianGrid strokeDasharray="3 3" stroke="#1e293b" />
-                      <XAxis dataKey="time" stroke="#64748b" fontSize={10} />
-                      <YAxis stroke="#64748b" domain={[90, 100]} fontSize={10} unit="%" />
-                      <Tooltip contentStyle={{ backgroundColor: '#111726', borderColor: '#1e293b', borderRadius: '8px', fontSize: '12px' }} />
-                      <Bar dataKey="uptime" fill="#10b981" radius={[4, 4, 0, 0]} />
-                    </BarChart>
-                  </ResponsiveContainer>
+                <div className="h-64 w-full">
+                  {chartData.length === 0 ? (
+                    <div className="h-full flex items-center justify-center text-xs text-emerald-100/40">
+                      Awaiting initial batch telemetry points...
+                    </div>
+                  ) : (
+                    <ResponsiveContainer width="100%" height="100%">
+                      <LineChart data={chartData}>
+                        <CartesianGrid strokeDasharray="3 3" stroke="#25443a" />
+                        <XAxis dataKey="time" stroke="#719b8c" fontSize={11} tickLine={false} />
+                        <YAxis stroke="#719b8c" fontSize={11} tickLine={false} unit="ms" />
+                        <Tooltip
+                          contentStyle={{ backgroundColor: '#12221c', borderColor: '#25443a', borderRadius: '8px', color: '#fff' }}
+                        />
+                        <Line type="monotone" dataKey="latency" stroke="#E5F455" strokeWidth={2} dot={false} />
+                        {hourlySeriesData.length > 1 && (
+                          <Line type="monotone" dataKey="p95Latency" stroke="#fbbf24" strokeWidth={1.5} strokeDasharray="4 4" dot={false} />
+                        )}
+                      </LineChart>
+                    </ResponsiveContainer>
+                  )}
                 </div>
               </div>
             </div>
-          ) : (
-            <div className="bg-[#090d16] rounded-xl border border-[#1e293b] overflow-hidden">
-              <table className="w-full text-left text-xs">
-                <thead className="bg-slate-900/50 text-slate-400 border-b border-[#1e293b]">
-                  <tr>
-                    <th className="py-2.5 px-4 font-medium">Timestamp</th>
-                    <th className="py-2.5 px-4 font-medium">Status</th>
-                    <th className="py-2.5 px-4 font-medium">Status Code</th>
-                    <th className="py-2.5 px-4 font-medium">Response Latency</th>
-                    <th className="py-2.5 px-4 font-medium">Error Details</th>
-                  </tr>
-                </thead>
-                <tbody className="divide-y divide-[#1e293b] text-slate-300 font-mono">
-                  {checks.length === 0 ? (
-                    <tr>
-                      <td colSpan="5" className="py-6 text-center text-slate-500 font-sans">
-                        No recent sample checks recorded for this timeframe yet.
-                      </td>
-                    </tr>
-                  ) : (
-                    checks.map((chk, idx) => (
-                      <tr key={idx} className="hover:bg-slate-800/20">
-                        <td className="py-2 px-4 text-slate-400">
-                          {new Date(chk.ts).toLocaleString()}
-                        </td>
-                        <td className="py-2 px-4">
-                          <span className={`px-2 py-0.5 rounded text-[10px] font-bold ${
-                            chk.status === 'UP' ? 'bg-emerald-500/10 text-emerald-400 border border-emerald-500/20' :
-                            chk.status === 'DEGRADED' ? 'bg-amber-500/10 text-amber-400 border border-amber-500/20' :
-                            'bg-rose-500/10 text-rose-400 border border-rose-500/20'
-                          }`}>
-                            {chk.status}
-                          </span>
-                        </td>
-                        <td className="py-2 px-4">{chk.statusCode || '--'}</td>
-                        <td className="py-2 px-4 text-blue-400">{chk.latency}ms</td>
-                        <td className="py-2 px-4 text-rose-400 truncate max-w-xs">{chk.error || 'None'}</td>
-                      </tr>
-                    ))
-                  )}
-                </tbody>
-              </table>
+          )}
+
+          {activeTab === 'history' && (
+            <div className="bg-[#182D26] border border-[#25443a] rounded-xl overflow-hidden divide-y divide-[#25443a]">
+              {checks.length === 0 ? (
+                <div className="p-8 text-center text-xs text-emerald-100/40">
+                  No execution checks recorded yet.
+                </div>
+              ) : (
+                checks.map((chk, i) => (
+                  <div key={i} className="p-3.5 flex items-center justify-between text-xs hover:bg-[#1f382f] transition-colors">
+                    <div className="flex items-center gap-3">
+                      <span className={`w-2 h-2 rounded-full ${
+                        chk.status === 'UP' ? 'bg-[#E5F455]' :
+                        chk.status === 'DEGRADED' ? 'bg-amber-400' : 'bg-rose-400'
+                      }`} />
+                      <span className="font-mono text-emerald-100/80">{new Date(chk.ts).toLocaleString()}</span>
+                      <span className="font-mono px-1.5 py-0.5 rounded bg-[#12221c] text-emerald-200/90 border border-[#25443a]">
+                        HTTP {chk.statusCode || '--'}
+                      </span>
+                    </div>
+
+                    <div className="flex items-center gap-6">
+                      <span className="font-mono text-[#E5F455] font-semibold">{chk.latency}ms</span>
+                      {chk.error && (
+                        <span className="text-rose-300 max-w-xs truncate font-mono text-[11px] bg-rose-500/10 px-2 py-0.5 rounded">
+                          {chk.error}
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                ))
+              )}
             </div>
           )}
         </div>

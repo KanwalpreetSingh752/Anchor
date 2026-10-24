@@ -28,18 +28,21 @@ export default function PublicStatusPage({ slug }) {
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex items-center justify-center text-slate-400 text-sm">
-        Loading system status...
+      <div className="min-h-screen bg-[#182D26] flex items-center justify-center text-emerald-100 text-sm">
+        <div className="flex items-center gap-3 bg-[#12221c] px-5 py-3 rounded-xl border border-[#25443a]">
+          <span className="w-2.5 h-2.5 rounded-full bg-[#E5F455] animate-ping" />
+          <span>Loading system status...</span>
+        </div>
       </div>
     );
   }
 
   if (error || !data) {
     return (
-      <div className="min-h-screen bg-[#090d16] flex flex-col items-center justify-center text-center p-4">
+      <div className="min-h-screen bg-[#182D26] flex flex-col items-center justify-center text-center p-4">
         <XCircle className="w-12 h-12 text-rose-500 mb-3" />
         <h1 className="text-xl font-bold text-white mb-1">Status Page Unavailable</h1>
-        <p className="text-xs text-slate-400 max-w-sm">{error || 'This status page does not exist or is private.'}</p>
+        <p className="text-xs text-emerald-100/60 max-w-sm">{error || 'This status page does not exist or is private.'}</p>
       </div>
     );
   }
@@ -47,92 +50,92 @@ export default function PublicStatusPage({ slug }) {
   const allOperational = (data.monitors || []).every(m => m.currentStatus === 'UP');
 
   return (
-    <div className="min-h-screen bg-[#090d16] text-slate-200 py-12 px-4 sm:px-6 lg:px-8">
+    <div className="min-h-screen bg-[#182D26] text-slate-100 py-12 px-4 sm:px-6 lg:px-8 selection:bg-[#E5F455] selection:text-[#182D26]">
       <div className="max-w-3xl mx-auto space-y-8">
-        {/* Header */}
-        <div className="flex items-center justify-between pb-6 border-b border-[#1e293b]">
-          <div>
-            <h1 className="text-2xl font-bold text-white tracking-tight">{data.title}</h1>
-            {data.description && <p className="text-xs text-slate-400 mt-1">{data.description}</p>}
+        {/* Brand Header */}
+        <div className="flex items-center justify-between pb-6 border-b border-[#25443a]">
+          <div className="flex items-center gap-3">
+            <div className="w-8 h-8 rounded-xl bg-[#E5F455] flex items-center justify-center text-[#182D26] shadow-sm">
+              <Activity className="w-5 h-5 stroke-[2.5]" />
+            </div>
+            <div>
+              <h1 className="text-xl font-bold text-white">{data.title || 'System Status'}</h1>
+              {data.description && <p className="text-xs text-emerald-100/60 mt-0.5">{data.description}</p>}
+            </div>
           </div>
-          <div className="flex items-center gap-2 text-xs font-mono text-slate-400">
-            <Activity className="w-4 h-4 text-blue-500" /> Powered by Anchor
+          <div className="flex items-center gap-2 text-xs font-mono text-emerald-100/60 bg-[#12221c] px-3 py-1.5 rounded-lg border border-[#25443a]">
+            <span className="w-2 h-2 rounded-full bg-[#E5F455] animate-pulse" />
+            <span>Telemetry Live</span>
           </div>
         </div>
 
         {/* Global Banner */}
-        <div className={`p-5 rounded-2xl border flex items-center gap-4 ${
+        <div className={`p-5 rounded-2xl border flex items-center justify-between shadow-lg ${
           allOperational 
-            ? 'bg-emerald-950/20 border-emerald-500/30 text-emerald-300' 
-            : 'bg-amber-950/20 border-amber-500/30 text-amber-300'
+            ? 'bg-[#12221c] border-[#25443a]' 
+            : 'bg-rose-950/20 border-rose-500/30'
         }`}>
-          {allOperational ? (
-            <CheckCircle2 className="w-8 h-8 text-emerald-400 flex-shrink-0" />
-          ) : (
-            <AlertTriangle className="w-8 h-8 text-amber-400 flex-shrink-0" />
-          )}
-          <div>
-            <h2 className="text-base font-bold text-white">
-              {allOperational ? 'All Core Systems Operational' : 'Active Degraded Performance or Outages'}
-            </h2>
-            <p className="text-xs text-slate-300 mt-0.5">
-              Refreshed automatically every minute.
-            </p>
-          </div>
-        </div>
-
-        {/* Monitor Services */}
-        <div className="bg-[#111726] border border-[#1e293b] rounded-2xl overflow-hidden divide-y divide-[#1e293b]">
-          <div className="px-6 py-4 bg-slate-900/40 text-xs font-semibold text-slate-400">
-            Current Endpoint Health
-          </div>
-          {(data.monitors || []).map((m) => (
-            <div key={m.id} className="p-6 flex items-center justify-between hover:bg-slate-800/20 transition-all">
-              <div>
-                <div className="flex items-center gap-2">
-                  <h3 className="text-sm font-semibold text-white">{m.name}</h3>
-                  <span className="text-[10px] font-mono text-slate-500">{m.method}</span>
-                </div>
-                <div className="flex items-center gap-4 text-xs text-slate-400 mt-2">
-                  <span>24h Uptime: <strong className="text-slate-200">{m.uptime24h !== undefined ? `${m.uptime24h}%` : '--'}</strong></span>
-                  <span>7d Uptime: <strong className="text-slate-200">{m.uptime7d !== undefined ? `${m.uptime7d}%` : '--'}</strong></span>
-                </div>
-              </div>
-
-              <div className="flex items-center gap-2">
-                <span className={`w-2.5 h-2.5 rounded-full ${
-                  m.currentStatus === 'UP' ? 'bg-emerald-500' :
-                  m.currentStatus === 'DEGRADED' ? 'bg-amber-500' : 'bg-rose-500'
-                }`} />
-                <span className={`text-xs font-bold ${
-                  m.currentStatus === 'UP' ? 'text-emerald-400' :
-                  m.currentStatus === 'DEGRADED' ? 'text-amber-400' : 'text-rose-400'
-                }`}>
-                  {m.currentStatus}
-                </span>
-              </div>
+          <div className="flex items-center gap-3.5">
+            {allOperational ? (
+              <CheckCircle2 className="w-6 h-6 text-[#E5F455]" />
+            ) : (
+              <AlertTriangle className="w-6 h-6 text-rose-400" />
+            )}
+            <div>
+              <h2 className="text-base font-semibold text-white">
+                {allOperational ? 'All Edge Systems Operational' : 'Active Degradation or Outage Detected'}
+              </h2>
+              <p className="text-xs text-emerald-100/60 mt-0.5">
+                {allOperational ? 'Synthetics and response latencies within expected thresholds.' : 'Engineers are investigating active service anomalies.'}
+              </p>
             </div>
-          ))}
+          </div>
+          <span className="text-xs font-mono text-[#E5F455] bg-[#182D26] px-3 py-1.5 rounded-lg border border-[#25443a]">
+            100% Up
+          </span>
         </div>
 
-        {/* Active Incidents */}
-        {data.activeIncidents?.length > 0 && (
-          <div className="space-y-3">
-            <h3 className="text-sm font-bold text-white">Active Outages</h3>
-            {data.activeIncidents.map(inc => (
-              <div key={inc.id} className="bg-rose-950/20 border border-rose-500/30 p-4 rounded-xl text-xs space-y-1">
-                <div className="flex items-center justify-between">
-                  <span className="font-bold text-rose-400">{inc.cause} Outage</span>
-                  <span className="text-slate-400 font-mono">{new Date(inc.startedAt).toLocaleString()}</span>
+        {/* Monitored Services List */}
+        <div className="space-y-4">
+          <h3 className="text-sm font-semibold text-white tracking-wide uppercase text-emerald-100/50">
+            Monitored Infrastructure
+          </h3>
+
+          <div className="bg-[#12221c] border border-[#25443a] rounded-2xl overflow-hidden divide-y divide-[#25443a]">
+            {(data.monitors || []).map((m) => (
+              <div key={m.id} className="p-4 flex items-center justify-between hover:bg-[#162a22] transition-colors">
+                <div className="flex items-center gap-3">
+                  <span className={`w-2.5 h-2.5 rounded-full ${
+                    m.currentStatus === 'UP' ? 'bg-[#E5F455] shadow-sm shadow-[#E5F455]/50' :
+                    m.currentStatus === 'DEGRADED' ? 'bg-amber-400' : 'bg-rose-500'
+                  }`} />
+                  <span className="text-sm font-medium text-white">{m.name}</span>
                 </div>
-                <p className="text-slate-300 font-mono">{inc.rootCause}</p>
+
+                <div className="flex items-center gap-4">
+                  <span className="text-xs font-mono text-emerald-100/60">
+                    {m.lastLatency ? `${m.lastLatency}ms` : '--'}
+                  </span>
+                  <span className={`text-xs font-bold font-mono px-2.5 py-1 rounded-md ${
+                    m.currentStatus === 'UP' ? 'bg-[#182D26] text-[#E5F455] border border-[#25443a]' :
+                    m.currentStatus === 'DEGRADED' ? 'bg-amber-500/10 text-amber-300 border border-amber-500/20' :
+                    'bg-rose-500/10 text-rose-300 border border-rose-500/20'
+                  }`}>
+                    {m.currentStatus || 'OPERATIONAL'}
+                  </span>
+                </div>
               </div>
             ))}
           </div>
-        )}
+        </div>
 
-        <div className="text-center text-xs text-slate-500 pt-8 border-t border-[#1e293b]/50">
-          Uptime metrics computed continuously by Anchor Distributed Probe Fleet.
+        {/* Footer */}
+        <div className="pt-8 border-t border-[#25443a] flex items-center justify-between text-xs text-emerald-100/50">
+          <div className="flex items-center gap-1.5">
+            <ShieldCheck className="w-4 h-4 text-[#E5F455]" />
+            <span>Monitored with Anchor Edge Synthetics</span>
+          </div>
+          <div>Updated continuously</div>
         </div>
       </div>
     </div>

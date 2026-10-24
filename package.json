@@ -7,6 +7,9 @@
     "shared"
   ],
   "scripts": {
+    "start": "docker compose up -d && echo. && echo Anchor Dashboard: http://localhost:5173 && echo API Health: http://localhost:3001/api/health",
+    "stop": "docker compose down",
+    "logs": "docker compose logs -f",
     "dev:api": "npm run dev --workspace=packages/api",
     "dev:scheduler": "npm run dev --workspace=packages/scheduler",
     "dev:worker": "npm run dev --workspace=packages/worker",
